@@ -1,10 +1,10 @@
 namespace Bicep.Versioning;
 
-public class PrereleaseIdentifer
+public class PrereleaseIdentifier
 {
     public string Value { get; }
 
-    public PrereleaseIdentifer(string value)
+    public PrereleaseIdentifier(string value)
     {
         Value = value;
     }

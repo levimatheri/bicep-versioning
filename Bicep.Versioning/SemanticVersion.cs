@@ -5,18 +5,18 @@ namespace Bicep.Versioning;
 public partial class SemanticVersion
 {
     public string Raw { get; }
-    public ulong Major { get; }
-    public ulong Minor { get; }
-    public ulong Patch { get; }
-    public IEnumerable<PrereleaseIdentifer> PrereleaseIdentifiers { get; }
+    public int Major { get; }
+    public int Minor { get; }
+    public int Patch { get; }
+    public IEnumerable<PrereleaseIdentifier> PrereleaseIdentifiers { get; }
     public IEnumerable<BuildIdentifier> BuildIdentifiers { get; }
 
     private SemanticVersion(
         string raw, 
-        ulong major, 
-        ulong minor, 
-        ulong patch, 
-        IEnumerable<PrereleaseIdentifer> prereleaseIdentifiers,
+        int major, 
+        int minor, 
+        int patch, 
+        IEnumerable<PrereleaseIdentifier> prereleaseIdentifiers,
         IEnumerable<BuildIdentifier> buildIdentifiers)
     {
         Raw = raw;
@@ -42,20 +42,9 @@ public partial class SemanticVersion
         var buildMetadataRaw = match.Groups["build"];
         
         // try-parse just in-case of overflows
-        if (!ulong.TryParse(majorRaw.Value, out var major))
-        {
-            throw new FormatException($"Invalid major version: '{majorRaw.Value}' in '{version}'.");
-        }
-
-        if (!ulong.TryParse(minorRaw.Value, out var minor))
-        {
-            throw new FormatException($"Invalid minor version: '{minorRaw.Value}' in '{version}'.");
-        }
-
-        if (!ulong.TryParse(patchRaw.Value, out var patch))
-        {
-            throw new FormatException($"Invalid patch version: '{patchRaw.Value}' in '{version}'.");
-        }
+        var major = majorRaw.Success ? int.Parse(majorRaw.Value) : 0;
+        var minor = minorRaw.Success ? int.Parse(minorRaw.Value) : 0;
+        var patch = patchRaw.Success ? int.Parse(patchRaw.Value) : 0;
 
         var prerelease =
             ParsePrerelease(prereleaseRaw.Success ? prereleaseRaw.Value : null);
@@ -71,15 +60,15 @@ public partial class SemanticVersion
             buildMetadata);
     }
     
-    private static IReadOnlyCollection<PrereleaseIdentifer> ParsePrerelease(string? prerelease)
+    private static IReadOnlyCollection<PrereleaseIdentifier> ParsePrerelease(string? prerelease)
     {
         if (string.IsNullOrEmpty(prerelease))
         {
-            return Array.Empty<PrereleaseIdentifer>();
+            return Array.Empty<PrereleaseIdentifier>();
         }
 
         var prereleaseIdentifiers = prerelease.Split('.')
-            .Select(x => new PrereleaseIdentifer(x))
+            .Select(x => new PrereleaseIdentifier(x))
             .ToArray();
 
         return prereleaseIdentifiers;
@@ -99,6 +88,6 @@ public partial class SemanticVersion
         return buildIdentifiers;
     }
     
-    [GeneratedRegex(@"^(?<major>0|[1-9]\d*)(?:\.(?<minor>0|[1-9]\d*)(?:\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<build>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?)?)?$")]
+    [GeneratedRegex(@"^(?:[vV])?(?<major>0|[1-9]\d*)(?:\.(?<minor>0|[1-9]\d*))?(?:\.(?<patch>0|[1-9]\d*))?(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<build>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$")]
     private static partial Regex SemverRegex();
 }
