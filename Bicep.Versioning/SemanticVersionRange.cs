@@ -62,14 +62,14 @@ public partial class SemanticVersionRange
         { "~", new ConstraintOperation(ConstraintOperator.Tilde, (v1, v2) => v1.IsTildeSatisfied(v2)) }
     };
 
-
+    // TODO: Revisit this regex
     [GeneratedRegex(@"^\s*(?:(?<operator>>=|<=|~>|!=|=|>|<|\^|~)\s*)?(?<version>\d+\.\d+\.\d+(?:-[\w\.-]+)?(?:\+[\w\.-]+)?)\s*$")]
     private static partial Regex ConstraintRegex();
 }
 
 public enum ConstraintOperator
 {
-    None,
+    None, // TODO: is this needed?
     Equal,
     GreaterThan,
     LessThan,

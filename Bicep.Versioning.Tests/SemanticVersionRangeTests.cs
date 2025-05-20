@@ -27,6 +27,7 @@ public class SemanticVersionRangeTests
         }
     }
 
+    // TODO: Simplify this
     private static IEnumerable<object[]> GetValidVersionRangeBasic =>
         [
             [

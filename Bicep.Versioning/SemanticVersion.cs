@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace Bicep.Versioning;
@@ -113,13 +114,6 @@ public partial class SemanticVersion
 
     public override int GetHashCode()
         => HashCode.Combine(Major, Minor, Patch, Prerelease, BuildMetadata);
-
-    // public static bool operator ==(SemanticVersion? left, SemanticVersion? right)
-    //     => Equals(left, right);
-
-    // public static bool operator !=(SemanticVersion? left, SemanticVersion? right)
-    //     => !Equals(left, right);
-
     public bool LessThan(SemanticVersion other)
         => this.CompareTo(other) < 0;
     public bool GreaterThan(SemanticVersion other)
@@ -129,6 +123,7 @@ public partial class SemanticVersion
     public bool GreaterThanOrEqual(SemanticVersion other)
         => this.CompareTo(other) >= 0;
 
+// TODO: Revisit this
     public bool IsTildeSatisfied(SemanticVersion other)
     {
         // ~1.2.3 := >=1.2.3 <1.3.0
@@ -212,7 +207,7 @@ public partial class SemanticVersion
             return -1; // Pre-release < Release
         }
 
-        return ComparePrereleases(other.PrereleaseIdentifiers);
+        return ComparePrereleases(other.PrereleaseIdentifiers!);
     }
 
     public bool Equals(SemanticVersion? other)
@@ -231,7 +226,7 @@ public partial class SemanticVersion
 
     private int ComparePrereleases(IEnumerable<PrereleaseIdentifier> other)
     {
-        using var thisEnumerator = PrereleaseIdentifiers.GetEnumerator();
+        using var thisEnumerator = PrereleaseIdentifiers!.GetEnumerator();
         using var otherEnumerator = other.GetEnumerator();
 
         while (thisEnumerator.MoveNext() && otherEnumerator.MoveNext())
