@@ -47,7 +47,7 @@ public class SemanticVersionTests
         string raw, int major, int minor, int patch,
         IEnumerable<PrereleaseIdentifier> prerelease, IEnumerable<BuildIdentifier> build)
     {
-        TestValidVersion(raw.Trim(), major, minor, patch, prerelease, build);
+        TestValidVersion(raw, major, minor, patch, prerelease, build);
     }
     
     [TestMethod]
