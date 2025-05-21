@@ -1,3 +1,4 @@
+using Bicep.Versioning.Extensions;
 using FluentAssertions;
 
 namespace Bicep.Versioning.Tests;
@@ -6,78 +7,79 @@ namespace Bicep.Versioning.Tests;
 public class SemanticVersionRangeTests
 {
     [TestMethod]
-    [DynamicData(nameof(GetValidVersionRangeBasic))]
+    [DynamicData(nameof(GetValidVersionRangesBasic))]
     public void ParseVersionRange_ValidRange_ReturnsExpectedProperties(
-        string raw, IList<TestSemanticVersionRange> expected)
+        string raw, int rangeCount)
     {
-        TestValidVersion(raw, expected);
+        TestParseValidVersion(raw, rangeCount);
     }
 
-    private void TestValidVersion(string versionRangeRaw, IList<TestSemanticVersionRange> expected)
+    [TestMethod]
+    [DynamicData(nameof(GetInvalidVersionRangesBasic))]
+    public void ParseVersionRange_InvalidRange_ThrowsFormatException(
+       string raw)
     {
-        var versionRange = SemanticVersionRange.Parse(versionRangeRaw);
-        versionRange.Should().HaveCountGreaterThan(0);
-        versionRange.Should().HaveCount(expected.Count());
-        for (int i = 0; i < versionRange.Count; i++)
-        {
-            var versionRangeItem = versionRange[i];
-            var expectedItem = expected[i];
-            versionRangeItem.Operation.Operator.Should().Be(expectedItem.ConstraintOperator);
-            versionRangeItem.Version.ToString().Should().Be(expectedItem.Version);
-        }
+        TestParseInvalidVersion(raw);
     }
 
-    // TODO: Simplify this
-    private static IEnumerable<object[]> GetValidVersionRangeBasic =>
-        [
-            [
-                ">= 1.2.3",
-                new[]
-                {
-                    new TestSemanticVersionRange { ConstraintOperator = ConstraintOperator.GreaterThanOrEqual, Version = "1.2.3" }
-                }
-            ],
-            [
-                "<= 2.3.4",
-                new[]
-                {
-                    new TestSemanticVersionRange { ConstraintOperator = ConstraintOperator.LessThanOrEqual, Version = "2.3.4" }
-                }
-            ],
-            [
-                "1.2.3",
-                new[]
-                {
-                    new TestSemanticVersionRange { ConstraintOperator = ConstraintOperator.Equal, Version = "1.2.3" }
-                }
-            ],
-            [
-                ">= 1.2.3, < 2.0.0",
-                new[]
-                {
-                    new TestSemanticVersionRange { ConstraintOperator = ConstraintOperator.GreaterThanOrEqual, Version = "1.2.3" },
-                    new TestSemanticVersionRange { ConstraintOperator = ConstraintOperator.LessThan, Version = "2.0.0" }
-                }
-            ],
-            [
-                "~1.2.3",
-                new[]
-                {
-                    new TestSemanticVersionRange { ConstraintOperator = ConstraintOperator.Tilde, Version = "1.2.3" }
-                }
-            ],
-            [
-                "^1.2.3",
-                new[]
-                {
-                    new TestSemanticVersionRange { ConstraintOperator = ConstraintOperator.Caret, Version = "1.2.3" }
-                }
-            ],
-        ];
-
-    public class TestSemanticVersionRange
+    [TestMethod]
+    [DynamicData(nameof(GetSatisfiesRangeBasic))]
+    public void SatisfiesRange(
+        string range, string version, bool satisfies)
     {
-        public required ConstraintOperator ConstraintOperator { get; set; }
-        public required string Version { get; set; }
+        var versionRanges = SemanticVersionRange.Parse(range);
+        var semanticVersion = SemanticVersion.Parse(version);
+
+        var result = semanticVersion.Satisfies(versionRanges);
+
+        result.Should().Be(satisfies);
     }
+
+    private static void TestParseValidVersion(string versionRangeRaw, int rangeCount)
+    {
+        var versionRanges = SemanticVersionRange.Parse(versionRangeRaw);
+        versionRanges.Should().HaveCountGreaterThan(0);
+        versionRanges.Should().HaveCount(rangeCount);
+    }
+
+    private static void TestParseInvalidVersion(string versionRangeRaw)
+    {
+        Action act = () => SemanticVersionRange.Parse(versionRangeRaw);
+        act.Should().Throw<FormatException>();
+    }
+
+    private static IEnumerable<object[]> GetValidVersionRangesBasic =>
+    [
+        [ ">= 1.2.3", 1 ],
+        [ "<=2.3.4", 1 ],
+        [ "< 1.2.3", 1 ],
+        [ ">2.3.4 ", 1 ],
+        [ "1.2.3", 1 ],
+        [ ">= 1.2.3, < 2.0.0", 2 ],
+        [ "<=2.3", 1 ],
+        [ "> 2", 1 ],
+        [ "~1.2.3", 1 ],
+        [ "^1.2.3", 1 ],
+        [ "^1.2, ^1", 2 ]
+    ];
+
+    private static IEnumerable<object[]> GetInvalidVersionRangesBasic =>
+    [
+        [ ">= 1.x" ],
+        [ "& 4.5.6" ],
+        [ "!= 1.2.3" ],
+        [ ">= 1.2.3 < 2" ]
+    ];
+
+    private static IEnumerable<object[]> GetSatisfiesRangeBasic =>
+    [
+        [ ">= 1.2.3", "1.2.3", true ],
+        [ ">= 1.2.3", "1.2.5", true ],
+        [ ">= 1.2.3", "2.0.0", true ],
+        [ ">= 1.2.3", "1.1.5", false ],
+        [ ">= 1.2.3", "0.2.3", false ],
+        [ ">= 1.2.3", "1.2.2", false ],
+        [ ">= 1.2", "1.2.3", true ],
+        [ ">= 1", "1.2.3", true ],
+    ];
 }

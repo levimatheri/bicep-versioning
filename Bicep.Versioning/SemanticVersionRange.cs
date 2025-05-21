@@ -58,18 +58,17 @@ public partial class SemanticVersionRange
         { "<", new ConstraintOperation(ConstraintOperator.LessThan, (v1, v2) => v1.LessThan(v2)) },
         { ">=", new ConstraintOperation(ConstraintOperator.GreaterThanOrEqual, (v1, v2) => v1.GreaterThanOrEqual(v2)) },
         { "<=", new ConstraintOperation(ConstraintOperator.LessThanOrEqual, (v1, v2) => v1.LessThanOrEqual(v2)) },
-        { "^", new ConstraintOperation(ConstraintOperator.Caret, (v1, v2) => v1.IsCaretSatisfied(v2)) },
-        { "~", new ConstraintOperation(ConstraintOperator.Tilde, (v1, v2) => v1.IsTildeSatisfied(v2)) }
+        { "^", new ConstraintOperation(ConstraintOperator.Caret, (v1, v2) => v1.SatisfiesCaretRange(v2)) },
+        { "~", new ConstraintOperation(ConstraintOperator.Tilde, (v1, v2) => v1.SatisfiedTildeRange(v2)) }
     };
 
     // TODO: Revisit this regex
-    [GeneratedRegex(@"^\s*(?:(?<operator>>=|<=|~>|!=|=|>|<|\^|~)\s*)?(?<version>\d+\.\d+\.\d+(?:-[\w\.-]+)?(?:\+[\w\.-]+)?)\s*$")]
+    [GeneratedRegex(@"^\s*(?:(?<operator>>=|<=|~>|=|>|<|\^|~)\s*)?(?<version>.+?)\s*$")]
     private static partial Regex ConstraintRegex();
 }
 
 public enum ConstraintOperator
 {
-    None, // TODO: is this needed?
     Equal,
     GreaterThan,
     LessThan,
@@ -82,10 +81,10 @@ public enum ConstraintOperator
 public class ConstraintOperation
 {
     public ConstraintOperator Operator { get; }
-    public Func<SemanticVersion, SemanticVersion, bool> Operation { get; }
+    public Func<SemanticVersion, SemanticVersion, bool> Evaluator { get; }
     public ConstraintOperation(ConstraintOperator @operator, Func<SemanticVersion, SemanticVersion, bool> operation)
     {
         Operator = @operator;
-        Operation = operation;
+        Evaluator = operation;
     }
 }

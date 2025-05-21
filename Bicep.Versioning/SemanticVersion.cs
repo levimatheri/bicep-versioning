@@ -124,7 +124,7 @@ public partial class SemanticVersion
         => this.CompareTo(other) >= 0;
 
 // TODO: Revisit this
-    public bool IsTildeSatisfied(SemanticVersion other)
+    public bool SatisfiedTildeRange(SemanticVersion other)
     {
         // ~1.2.3 := >=1.2.3 <1.3.0
         if (!this.GreaterThanOrEqual(other))
@@ -140,7 +140,7 @@ public partial class SemanticVersion
             upperBoundRaw, other.Major, upperMinor, 0));
     }
 
-    public bool IsCaretSatisfied(SemanticVersion other)
+    public bool SatisfiesCaretRange(SemanticVersion other)
     {
         // ^1.2.3 := >=1.2.3 <2.0.0
         // ^0.2.3 := >=0.2.3 <0.3.0
