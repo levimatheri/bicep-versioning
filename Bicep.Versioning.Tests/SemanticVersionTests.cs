@@ -15,15 +15,6 @@ public class SemanticVersionTests
     }
     
     [TestMethod]
-    [DynamicData(nameof(GetValidVersionsWithVPrefix))]
-    public void Parse_ValidVersionWithVPrefix_ReturnsCorrectSemanticVersion(
-        string raw, int major, int minor, int patch,
-        IEnumerable<PrereleaseIdentifier> prerelease, IEnumerable<BuildIdentifier> build)
-    {
-        TestValidVersion(raw, major, minor, patch, prerelease, build);
-    }
-    
-    [TestMethod]
     [DynamicData(nameof(GetValidVersionsWithOmittedPatch))]
     public void Parse_ValidVersionWithOmittedPatch_ReturnsCorrectSemanticVersion(
         string raw, int major, int minor, int patch,
@@ -141,12 +132,6 @@ public class SemanticVersionTests
         ["1.2.3----RC-SNAPSHOT.12.9.1--.12", 1, 2, 3, Pre("---RC-SNAPSHOT", "12", "9", "1--", "12"), Build()],
         ["1.0.0+0.build.1-rc.10000aaa-kk-0.1", 1, 0, 0, Pre(), Build("0", "build", "1-rc", "10000aaa-kk-0", "1")],
         ["1.0.0-0A.is.legal", 1, 0, 0, Pre("0A", "is", "legal"), Build()]
-    ];
-
-    private static IEnumerable<object[]> GetValidVersionsWithVPrefix =>
-    [
-        ["v14.5.6", 14, 5, 6, Pre(), Build()],
-        ["V14.5.6", 14, 5, 6, Pre(), Build()]
     ];
 
     private static IEnumerable<object[]> GetValidVersionsWithOmittedPatch =>

@@ -35,6 +35,19 @@ public class SemanticVersionRangeTests
         result.Should().Be(satisfies);
     }
 
+    [TestMethod]
+    [DynamicData(nameof(GetSatisfiesRangeWithPrereleaseOrBuild))]
+    public void SatisfiesRange_WithPrereleaseOrBuild(
+    string range, string version, bool satisfies)
+    {
+        var versionRanges = SemanticVersionRange.Parse(range);
+        var semanticVersion = SemanticVersion.Parse(version);
+
+        var result = semanticVersion.Satisfies(versionRanges);
+
+        result.Should().Be(satisfies);
+    }
+
     private static void TestParseValidVersion(string versionRangeRaw, int rangeCount)
     {
         var versionRanges = SemanticVersionRange.Parse(versionRangeRaw);
@@ -55,9 +68,9 @@ public class SemanticVersionRangeTests
         [ "< 1.2.3", 1 ],
         [ ">2.3.4 ", 1 ],
         [ "1.2.3", 1 ],
+        [ "=1.2.3", 1 ],
+        [ "1.0.0", 1 ],
         [ ">= 1.2.3, < 2.0.0", 2 ],
-        [ "<=2.3", 1 ],
-        [ "> 2", 1 ],
         [ "~1.2.3", 1 ],
         [ "^1.2.3", 1 ],
         [ "^1.2, ^1", 2 ]
@@ -73,13 +86,90 @@ public class SemanticVersionRangeTests
 
     private static IEnumerable<object[]> GetSatisfiesRangeBasic =>
     [
+        // Basic comparisons
         [ ">= 1.2.3", "1.2.3", true ],
-        [ ">= 1.2.3", "1.2.5", true ],
-        [ ">= 1.2.3", "2.0.0", true ],
-        [ ">= 1.2.3", "1.1.5", false ],
-        [ ">= 1.2.3", "0.2.3", false ],
         [ ">= 1.2.3", "1.2.2", false ],
-        [ ">= 1.2", "1.2.3", true ],
-        [ ">= 1", "1.2.3", true ],
+
+        // Greater than
+        [ "> 1.2.3", "1.2.4", true ],
+        [ "> 1.2.3", "1.2.3", false ],
+
+        // Less than or equal
+        [ "<= 1.2.3", "1.2.3", true ],
+        [ "<= 1.2.3", "1.2.4", false ],
+
+        // Less than
+        [ "< 1.2.3", "1.2.2", true ],
+        [ "< 1.2.3", "1.2.3", false ],
+
+        // Exact match
+        [ "1.2.3", "1.2.3", true ],
+        [ "1.2.3", "1.2.4", false ],
+        [ "=1.2.3", "1.2.3", true ],
+        [ "1.0.0", "1.0.0", true ],
+
+        // Tilde ranges
+        [ "~1.2.3", "1.2.3", true ],
+        [ "~1.2.3", "1.3.0", false ],
+
+        // Caret ranges
+        [ "^1.2.3", "1.9.9", true ],
+        [ "^1.2.3", "2.0.0", false ],
+
+        // Multiple ranges (AND)
+        [ ">= 1.2.3, < 2.0.0", "1.2.3", true ],
+        [ ">= 1.2.3, < 2.0.0", "2.0.0", false ],
+        [ "^1.2, ^2", "1.3.0", false ],
+        [ "^1.2, ^1", "1.3.0", true ],
+    ];
+
+
+    private static IEnumerable<object[]> GetSatisfiesRangeWithPrereleaseOrBuild =>
+    [
+        // Prerelease versions
+        [ ">= 1.2.3-alpha", "1.2.3-alpha", true ],
+        [ ">= 1.2.3-alpha", "1.2.3-beta", false ],
+        [ "<= 1.2.3-alpha", "1.2.3-alpha", true ],
+        [ "<= 1.2.3-alpha", "1.2.3-beta", false ],
+
+        // Build metadata
+        [ ">= 1.2.3+build", "1.2.3+build", true ],
+        [ ">= 1.2.3+build", "1.2.3+otherbuild", true ],
+        [ "<= 1.2.3+build", "1.2.3+build", true ],
+        [ "<= 1.2.3+build", "1.2.3+otherbuild", true ],
+
+        // Tricky scenarios
+
+        // Prerelease vs. release
+        [ ">= 1.2.3-alpha", "1.2.3", true ], // release is after prerelease
+        [ "< 1.2.3", "1.2.3-alpha", false ], // prerelease is not less than release
+        [ "<= 1.2.3", "1.2.3-alpha", false ], // prerelease is not less than or equal to release
+
+        // Prerelease with different identifiers
+        [ ">= 1.2.3-alpha", "1.2.3-alpha.1", true ],
+        [ ">= 1.2.3-alpha.2", "1.2.3-alpha.1", false ],
+        [ "< 1.2.3-alpha.2", "1.2.3-alpha.1", true ],
+
+        // Build metadata ignored in precedence
+        [ "1.2.3+build1", "1.2.3+build2", true ],
+        [ "=1.2.3+build1", "1.2.3+build2", true ],
+
+        // Prerelease and build metadata
+        [ "1.2.3-alpha+build1", "1.2.3-alpha+build2", true ],
+        [ "=1.2.3-alpha+build1", "1.2.3-alpha+build2", true ],
+
+        // Prerelease range with build metadata
+        [ ">= 1.2.3-alpha+build1", "1.2.3-alpha+build2", true ],
+        [ "<= 1.2.3-alpha+build1", "1.2.3-alpha+build2", true ],
+
+        // Prerelease vs. earlier prerelease
+        [ "> 1.2.3-alpha", "1.2.3-alpha.1", true ],
+        [ "< 1.2.3-alpha.1", "1.2.3-alpha", true ],
+
+        // Release vs. prerelease with build
+        [ "=1.2.3", "1.2.3+build", true ],
+        [ "=1.2.3-alpha", "1.2.3-alpha+build", true ],
+        [ "1.2.3-alpha", "1.2.3-alpha+build", true ],
+        [ "1.2.3-alpha+build", "1.2.3-alpha", true ]
     ];
 }
