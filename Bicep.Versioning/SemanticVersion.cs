@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace Bicep.Versioning;
@@ -217,11 +216,7 @@ public partial class SemanticVersion
             return false;
         }
 
-        return Major == other.Major &&
-               Minor == other.Minor &&
-               Patch == other.Patch &&
-               string.Equals(Prerelease, other.Prerelease, StringComparison.OrdinalIgnoreCase) &&
-               string.Equals(BuildMetadata, other.BuildMetadata, StringComparison.OrdinalIgnoreCase);
+        return this.CompareTo(other) == 0;
     }
 
     private int ComparePrereleases(IEnumerable<PrereleaseIdentifier> other)
