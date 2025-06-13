@@ -59,7 +59,7 @@ public partial class SemanticVersionRange
         { ">=", new ConstraintOperation(ConstraintOperator.GreaterThanOrEqual, (v1, v2) => v1.GreaterThanOrEqual(v2)) },
         { "<=", new ConstraintOperation(ConstraintOperator.LessThanOrEqual, (v1, v2) => v1.LessThanOrEqual(v2)) },
         { "^", new ConstraintOperation(ConstraintOperator.Caret, (v1, v2) => v1.SatisfiesCaretRange(v2)) },
-        { "~", new ConstraintOperation(ConstraintOperator.Tilde, (v1, v2) => v1.SatisfiedTildeRange(v2)) }
+        { "~", new ConstraintOperation(ConstraintOperator.Tilde, (v1, v2) => v1.SatisfiesTildeRange(v2)) }
     };
 
     // TODO: Revisit this regex

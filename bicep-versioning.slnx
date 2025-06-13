@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Bicep.Versioning.Sprache.Tests/Bicep.Versioning.Sprache.Tests.csproj" />
+  <Project Path="Bicep.Versioning.Sprache/Bicep.Versioning.Sprache.csproj" />
+  <Project Path="Bicep.Versioning.Tests/Bicep.Versioning.Tests.csproj" />
+  <Project Path="Bicep.Versioning/Bicep.Versioning.csproj" />
+</Solution>

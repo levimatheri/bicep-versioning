@@ -122,28 +122,58 @@ public partial class SemanticVersion
     public bool GreaterThanOrEqual(SemanticVersion other)
         => this.CompareTo(other) >= 0;
 
-// TODO: Revisit this
-    public bool SatisfiedTildeRange(SemanticVersion other)
+    public bool SatisfiesTildeRange(SemanticVersion other)
     {
-        // ~1.2.3 := >=1.2.3 <1.3.0
         if (!this.GreaterThanOrEqual(other))
             return false;
 
         if (this.Major != other.Major)
+        {
+            // If the major version differs, the range is invalid
             return false;
+        }
 
-        // If other.Minor is specified, upper bound is next minor
-        int upperMinor = other.Minor + 1;
-        var upperBoundRaw = $"{other.Major}.{upperMinor}.0";
-        return this.Minor == other.Minor && this.LessThan(new SemanticVersion(
-            upperBoundRaw, other.Major, upperMinor, 0));
+        int upperMinor = other.Minor > 0 || other.Patch > 0 ? other.Minor + 1 : 0;
+        int upperMajor = other.Major + 1;
+
+        SemanticVersion upperBound;
+        if (other.Minor > 0 || other.Patch > 0)
+        {
+            // If other.Patch is specified, upper bound is next minor
+            var upperBoundRaw = $"{other.Major}.{upperMinor}.0";
+            upperBound = new SemanticVersion(upperBoundRaw, other.Major, upperMinor, 0);
+        }
+        else
+        {
+            // If other.Minor is 0, upper bound is next major
+            var upperMajorBoundRaw = $"{upperMajor}.0.0";
+            upperBound = new SemanticVersion(upperMajorBoundRaw, upperMajor, 0, 0);
+        }
+
+        // If 'other' is a prerelease, only allow prereleases of the same [major, minor, patch] tuple
+        if (other.PrereleaseIdentifiers?.Any() == true)
+        {
+            if (this.Major == other.Major && this.Minor == other.Minor && this.Patch == other.Patch)
+            {
+                if (this.PrereleaseIdentifiers?.Any() == true)
+                {
+                    return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
+                }
+
+                // Release version of the same [major, minor, patch] tuple is allowed
+                return true;
+            }
+
+            // Not the same [major, minor, patch] tuple
+            return false;
+        }
+
+        // If 'other' is not a prerelease, allow any version in the range
+        return this.LessThan(upperBound);
     }
 
     public bool SatisfiesCaretRange(SemanticVersion other)
     {
-        // ^1.2.3 := >=1.2.3 <2.0.0
-        // ^0.2.3 := >=0.2.3 <0.3.0
-        // ^0.0.3 := >=0.0.3 <0.0.4
         if (!this.GreaterThanOrEqual(other))
             return false;
 
@@ -151,22 +181,80 @@ public partial class SemanticVersion
         {
             // < next major
             var upperBoundRaw = $"{other.Major + 1}.0.0";
-            return this.LessThan(new SemanticVersion(
-                upperBoundRaw, other.Major + 1, 0, 0));
+            var upperBound = new SemanticVersion(upperBoundRaw, other.Major + 1, 0, 0);
+
+            if (this.LessThan(upperBound))
+            {
+                // If other is a prerelease, only allow prereleases of the same [major, minor, patch] tuple
+                if (other.PrereleaseIdentifiers?.Any() == true)
+                {
+                    if (this.Major == other.Major && this.Minor == other.Minor && this.Patch == other.Patch)
+                    {
+                        if (this.PrereleaseIdentifiers?.Any() == true)
+                        {
+                            return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
+                        }
+
+                        // Release version of the same [major, minor, patch] tuple is allowed
+                        return true;
+                    }
+
+                    return false;
+                }
+
+                // If other is not a prerelease, allow any version with the same major
+                return this.Major == other.Major;
+            }
+
+            return false;
         }
+
         if (other.Minor > 0)
         {
             // < next minor
             var upperBoundRaw = $"0.{other.Minor + 1}.0";
-            return this.Major == 0 &&
-                this.LessThan(new SemanticVersion(
-                    upperBoundRaw, 0, other.Minor + 1, 0));
+            var upperBound = new SemanticVersion(upperBoundRaw, 0, other.Minor + 1, 0);
+
+            if (this.LessThan(upperBound))
+            {
+                if (other.PrereleaseIdentifiers?.Any() == true)
+                {
+                    if (this.Major == 0 && this.Minor == other.Minor && this.Patch == other.Patch)
+                    {
+                        if (this.PrereleaseIdentifiers?.Any() == true)
+                        {
+                            return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+                return this.Major == 0 && this.Minor == other.Minor;
+            }
+            return false;
         }
+
         // < next patch
         var patchUpperBoundRaw = $"0.0.{other.Patch + 1}";
-        return this.Major == 0 && this.Minor == 0 &&
-            this.LessThan(new SemanticVersion(
-                patchUpperBoundRaw, 0, 0, other.Patch + 1));
+        var patchUpperBound = new SemanticVersion(patchUpperBoundRaw, 0, 0, other.Patch + 1);
+
+        if (this.LessThan(patchUpperBound))
+        {
+            if (other.PrereleaseIdentifiers?.Any() == true)
+            {
+                if (this.Major == 0 && this.Minor == 0 && this.Patch == other.Patch)
+                {
+                    if (this.PrereleaseIdentifiers?.Any() == true)
+                    {
+                        return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
+                    }
+                    return true;
+                }
+                return false;
+            }
+            return this.Major == 0 && this.Minor == 0 && this.Patch == other.Patch;
+        }
+        return false;
     }
 
     public int CompareTo(SemanticVersion other)

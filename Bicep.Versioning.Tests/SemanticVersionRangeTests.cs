@@ -1,5 +1,5 @@
 using Bicep.Versioning.Extensions;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace Bicep.Versioning.Tests;
 
@@ -38,7 +38,7 @@ public class SemanticVersionRangeTests
     [TestMethod]
     [DynamicData(nameof(GetSatisfiesRangeWithPrereleaseOrBuild))]
     public void SatisfiesRange_WithPrereleaseOrBuild(
-    string range, string version, bool satisfies)
+        string range, string version, bool satisfies)
     {
         var versionRanges = SemanticVersionRange.Parse(range);
         var semanticVersion = SemanticVersion.Parse(version);
