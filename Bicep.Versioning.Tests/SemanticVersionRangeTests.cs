@@ -73,7 +73,8 @@ public class SemanticVersionRangeTests
         [ ">= 1.2.3, < 2.0.0", 2 ],
         [ "~1.2.3", 1 ],
         [ "^1.2.3", 1 ],
-        [ "^1.2, ^1", 2 ]
+        [ "^1.2, ^1", 2 ],
+        [ "\t<1.2.3\t", 1]
     ];
 
     private static IEnumerable<object[]> GetInvalidVersionRangesBasic =>
