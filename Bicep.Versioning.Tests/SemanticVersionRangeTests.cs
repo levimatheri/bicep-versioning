@@ -51,7 +51,6 @@ public class SemanticVersionRangeTests
     private static void TestParseValidVersion(string versionRangeRaw, int rangeCount)
     {
         var versionRanges = SemanticVersionRange.Parse(versionRangeRaw);
-        versionRanges.Should().HaveCountGreaterThan(0);
         versionRanges.Should().HaveCount(rangeCount);
     }
 

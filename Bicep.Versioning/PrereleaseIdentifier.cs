@@ -17,25 +17,14 @@ public class PrereleaseIdentifier : IComparable<PrereleaseIdentifier>
             return 1;
         }
 
-        bool thisIsNumeric = int.TryParse(Value, out int thisNum);
-        bool otherIsNumeric = int.TryParse(other.Value, out int otherNum);
+        var thisIsNumeric = int.TryParse(Value, out var thisNum);
+        var otherIsNumeric = int.TryParse(other.Value, out var otherNum);
 
-        if (thisIsNumeric && otherIsNumeric)
+        return thisIsNumeric switch
         {
-            return thisNum.CompareTo(otherNum);
-        }
-        else if (thisIsNumeric)
-        {
-            // Numeric identifiers have lower precedence than non-numeric.
-            return -1;
-        }
-        else if (otherIsNumeric)
-        {
-            return 1;
-        }
-        else
-        {
-            return string.Compare(Value, other.Value, StringComparison.Ordinal);
-        }
+            true when otherIsNumeric => thisNum.CompareTo(otherNum),
+            true => -1, // Numeric identifiers have lower precedence than non-numeric.
+            _ => otherIsNumeric ? 1 : string.Compare(Value, other.Value, StringComparison.Ordinal)
+        };
     }
 }

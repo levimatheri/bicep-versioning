@@ -133,8 +133,8 @@ public partial class SemanticVersion
             return false;
         }
 
-        int upperMinor = other.Minor > 0 || other.Patch > 0 ? other.Minor + 1 : 0;
-        int upperMajor = other.Major + 1;
+        var upperMinor = other.Minor > 0 || other.Patch > 0 ? other.Minor + 1 : 0;
+        var upperMajor = other.Major + 1;
 
         SemanticVersion upperBound;
         if (other.Minor > 0 || other.Patch > 0)
@@ -151,25 +151,24 @@ public partial class SemanticVersion
         }
 
         // If 'other' is a prerelease, only allow prereleases of the same [major, minor, patch] tuple
-        if (other.PrereleaseIdentifiers?.Any() == true)
+        if (other.PrereleaseIdentifiers?.Any() is false)
         {
-            if (this.Major == other.Major && this.Minor == other.Minor && this.Patch == other.Patch)
+            return this.LessThan(upperBound);
+        }
+        
+        if (this.Major == other.Major && this.Minor == other.Minor && this.Patch == other.Patch)
+        {
+            if (this.PrereleaseIdentifiers?.Any() == true)
             {
-                if (this.PrereleaseIdentifiers?.Any() == true)
-                {
-                    return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
-                }
-
-                // Release version of the same [major, minor, patch] tuple is allowed
-                return true;
+                return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
             }
 
-            // Not the same [major, minor, patch] tuple
-            return false;
+            // Release version of the same [major, minor, patch] tuple is allowed
+            return true;
         }
 
-        // If 'other' is not a prerelease, allow any version in the range
-        return this.LessThan(upperBound);
+        // Not the same [major, minor, patch] tuple
+        return false;
     }
 
     public bool SatisfiesCaretRange(SemanticVersion other)
@@ -183,30 +182,30 @@ public partial class SemanticVersion
             var upperBoundRaw = $"{other.Major + 1}.0.0";
             var upperBound = new SemanticVersion(upperBoundRaw, other.Major + 1, 0, 0);
 
-            if (this.LessThan(upperBound))
+            if (!this.LessThan(upperBound))
             {
-                // If other is a prerelease, only allow prereleases of the same [major, minor, patch] tuple
-                if (other.PrereleaseIdentifiers?.Any() == true)
+                return false;
+            }
+            
+            // If other is a prerelease, only allow prereleases of the same [major, minor, patch] tuple
+            if (other.PrereleaseIdentifiers?.Any() == true)
+            {
+                if (this.Major == other.Major && this.Minor == other.Minor && this.Patch == other.Patch)
                 {
-                    if (this.Major == other.Major && this.Minor == other.Minor && this.Patch == other.Patch)
+                    if (this.PrereleaseIdentifiers?.Any() == true)
                     {
-                        if (this.PrereleaseIdentifiers?.Any() == true)
-                        {
-                            return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
-                        }
-
-                        // Release version of the same [major, minor, patch] tuple is allowed
-                        return true;
+                        return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
                     }
 
-                    return false;
+                    // Release version of the same [major, minor, patch] tuple is allowed
+                    return true;
                 }
 
-                // If other is not a prerelease, allow any version with the same major
-                return this.Major == other.Major;
+                return false;
             }
 
-            return false;
+            // If other is not a prerelease, allow any version with the same major
+            return this.Major == other.Major;
         }
 
         if (other.Minor > 0)
@@ -215,46 +214,51 @@ public partial class SemanticVersion
             var upperBoundRaw = $"0.{other.Minor + 1}.0";
             var upperBound = new SemanticVersion(upperBoundRaw, 0, other.Minor + 1, 0);
 
-            if (this.LessThan(upperBound))
+            if (!this.LessThan(upperBound))
             {
-                if (other.PrereleaseIdentifiers?.Any() == true)
-                {
-                    if (this.Major == 0 && this.Minor == other.Minor && this.Patch == other.Patch)
-                    {
-                        if (this.PrereleaseIdentifiers?.Any() == true)
-                        {
-                            return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
-                        }
-                        return true;
-                    }
-                    return false;
-                }
-                return this.Major == 0 && this.Minor == other.Minor;
+                return false;
             }
-            return false;
+            
+            if (other.PrereleaseIdentifiers?.Any() == true)
+            {
+                if (this.Major == 0 && this.Minor == other.Minor && this.Patch == other.Patch)
+                {
+                    if (this.PrereleaseIdentifiers?.Any() == true)
+                    {
+                        return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
+                    }
+                    
+                    return true;
+                }
+                
+                return false;
+            }
+            
+            return this.Major == 0 && this.Minor == other.Minor;
         }
 
         // < next patch
         var patchUpperBoundRaw = $"0.0.{other.Patch + 1}";
         var patchUpperBound = new SemanticVersion(patchUpperBoundRaw, 0, 0, other.Patch + 1);
 
-        if (this.LessThan(patchUpperBound))
+        if (!this.LessThan(patchUpperBound))
         {
-            if (other.PrereleaseIdentifiers?.Any() == true)
-            {
-                if (this.Major == 0 && this.Minor == 0 && this.Patch == other.Patch)
-                {
-                    if (this.PrereleaseIdentifiers?.Any() == true)
-                    {
-                        return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
-                    }
-                    return true;
-                }
-                return false;
-            }
-            return this.Major == 0 && this.Minor == 0 && this.Patch == other.Patch;
+            return false;
         }
-        return false;
+        
+        if (other.PrereleaseIdentifiers?.Any() == true)
+        {
+            if (this.Major == 0 && this.Minor == 0 && this.Patch == other.Patch)
+            {
+                if (this.PrereleaseIdentifiers?.Any() == true)
+                {
+                    return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
+                }
+                return true;
+            }
+            return false;
+        }
+        return this.Major == 0 && this.Minor == 0 && this.Patch == other.Patch;
     }
 
     public int CompareTo(SemanticVersion other)
@@ -309,7 +313,7 @@ public partial class SemanticVersion
 
     private int ComparePrereleases(IEnumerable<PrereleaseIdentifier> other)
     {
-        using var thisEnumerator = PrereleaseIdentifiers!.GetEnumerator();
+        using var thisEnumerator = this.PrereleaseIdentifiers!.GetEnumerator();
         using var otherEnumerator = other.GetEnumerator();
 
         while (thisEnumerator.MoveNext() && otherEnumerator.MoveNext())

@@ -14,14 +14,8 @@ public partial class SemanticVersionRange
     public static IReadOnlyList<SemanticVersionRange> Parse(string range)
     {
         var ranges = range.Split([','], StringSplitOptions.RemoveEmptyEntries);
-        var parsedRanges = new List<SemanticVersionRange>();
 
-        foreach (var r in ranges)
-        {
-            parsedRanges.Add(ParseSingle(r));
-        }
-
-        return parsedRanges;
+        return ranges.Select(ParseSingle).ToList();
     }
 
     private static SemanticVersionRange ParseSingle(string range)
@@ -43,27 +37,24 @@ public partial class SemanticVersionRange
         return new SemanticVersionRange(operation, version, range);
     }
 
-
     public ConstraintOperation Operation { get; }
     public SemanticVersion Version { get; }
     public string Raw { get; }
 
-    
 
-    private static IReadOnlyDictionary<string, ConstraintOperation> ConstraintOperations = new Dictionary<string, ConstraintOperation>
+    private static readonly IReadOnlyDictionary<string, ConstraintOperation> ConstraintOperations = new Dictionary<string, ConstraintOperation>
     {
-        { "", new ConstraintOperation(ConstraintOperator.Equal, (v1, v2) => v1.Equals(v2)) },
-        { "=", new ConstraintOperation(ConstraintOperator.Equal, (v1, v2) => v1.Equals(v2)) },
-        { ">", new ConstraintOperation(ConstraintOperator.GreaterThan, (v1, v2) => v1.GreaterThan(v2)) },
-        { "<", new ConstraintOperation(ConstraintOperator.LessThan, (v1, v2) => v1.LessThan(v2)) },
-        { ">=", new ConstraintOperation(ConstraintOperator.GreaterThanOrEqual, (v1, v2) => v1.GreaterThanOrEqual(v2)) },
-        { "<=", new ConstraintOperation(ConstraintOperator.LessThanOrEqual, (v1, v2) => v1.LessThanOrEqual(v2)) },
-        { "^", new ConstraintOperation(ConstraintOperator.Caret, (v1, v2) => v1.SatisfiesCaretRange(v2)) },
-        { "~", new ConstraintOperation(ConstraintOperator.Tilde, (v1, v2) => v1.SatisfiesTildeRange(v2)) }
+        { "", new ConstraintOperation(ConstraintOperator.Equal, (a, b) => a.Equals(b)) },
+        { "=", new ConstraintOperation(ConstraintOperator.Equal, (a, b) => a.Equals(b)) },
+        { ">", new ConstraintOperation(ConstraintOperator.GreaterThan, (a, b) => a.GreaterThan(b)) },
+        { "<", new ConstraintOperation(ConstraintOperator.LessThan, (a, b) => a.LessThan(b)) },
+        { ">=", new ConstraintOperation(ConstraintOperator.GreaterThanOrEqual, (a, b) => a.GreaterThanOrEqual(b)) },
+        { "<=", new ConstraintOperation(ConstraintOperator.LessThanOrEqual, (a, b) => a.LessThanOrEqual(b)) },
+        { "^", new ConstraintOperation(ConstraintOperator.Caret, (a, b) => a.SatisfiesCaretRange(b)) },
+        { "~", new ConstraintOperation(ConstraintOperator.Tilde, (a, b) => a.SatisfiesTildeRange(b)) }
     };
 
-    // TODO: Revisit this regex
-    [GeneratedRegex(@"^\s*(?:(?<operator>>=|<=|~>|=|>|<|\^|~)\s*)?(?<version>.+?)\s*$")]
+    [GeneratedRegex(@"^\s*(?:(?<operator>>=|<=|=|>|<|\^|~)\s*)?(?<version>.+?)\s*$")]
     private static partial Regex ConstraintRegex();
 }
 
@@ -80,11 +71,12 @@ public enum ConstraintOperator
 
 public class ConstraintOperation
 {
-    public ConstraintOperator Operator { get; }
-    public Func<SemanticVersion, SemanticVersion, bool> Evaluator { get; }
     public ConstraintOperation(ConstraintOperator @operator, Func<SemanticVersion, SemanticVersion, bool> operation)
     {
         Operator = @operator;
         Evaluator = operation;
     }
+
+    public ConstraintOperator Operator { get; }
+    public Func<SemanticVersion, SemanticVersion, bool> Evaluator { get; }
 }

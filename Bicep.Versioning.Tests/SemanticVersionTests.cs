@@ -83,7 +83,7 @@ public class SemanticVersionTests
         TestInvalidVersion(raw);
     }
     
-    private void TestValidVersion(string versionRaw, int major, int minor, int patch,
+    private static void TestValidVersion(string versionRaw, int major, int minor, int patch,
         IEnumerable<PrereleaseIdentifier> prerelease, IEnumerable<BuildIdentifier> build)
     {
         var semanticVersion = SemanticVersion.Parse(versionRaw);
@@ -95,7 +95,7 @@ public class SemanticVersionTests
         semanticVersion.Raw.Should().Be(versionRaw);
     }
     
-    private void TestInvalidVersion(string versionRaw)
+    private static void TestInvalidVersion(string versionRaw)
     {
         var act = () => SemanticVersion.Parse(versionRaw);
         act.Should().Throw<FormatException>()
