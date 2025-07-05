@@ -70,9 +70,9 @@ public class SemanticVersionRangeTests
         [ "=1.2.3", 1 ],
         [ "1.0.0", 1 ],
         [ ">= 1.2.3, < 2.0.0", 2 ],
-        [ "~1.2.3", 1 ],
-        [ "^1.2.3", 1 ],
-        [ "^1.2, ^1", 2 ],
+        [ "~1.2.3", 2 ], // >=1.2.3, <1.3.0
+        [ "^1.2.3", 2 ], // >=1.2.3, <2.0.0
+        [ "^1.2, ^1", 4 ], // >=1.2.0, <2.0.0, >=1.0.0, <2.0.0
         [ "\t<1.2.3\t", 1]
     ];
 
@@ -117,7 +117,9 @@ public class SemanticVersionRangeTests
         [ "~1.0.3", "2.0.0", false ],
         [ "~1.2", "1.2.2", true ],
         [ "~1.2", "1.3.0", false ],
-        [ "~1.0", "1.3.4", true ],
+        [ "~1.0", "1.0.9", true ],
+        [ "~1.0", "1.1.0", false ],
+        [ "~1", "1.2.0", true ],
         [ "~1", "2.0.0", false ],
 
         // Caret ranges
@@ -167,11 +169,13 @@ public class SemanticVersionRangeTests
         // tilde with prerelease
         [ "~1.2.3-beta.2", "1.2.3", true ],
         [ "~1.2.3-beta.2", "1.2.3-beta.4", true ],
-        [ "~1.2.3-beta.2", "1.2.4-beta.2", false ],
+        [ "~1.2.3-beta.2", "1.2.4-beta.2", true ],
+        [ "~1.2.3-beta.2", "1.2.3-alpha.1", false ],
 
         // caret with prerelease
         [ "^1.2.3-beta.2", "1.2.3", true ],
         [ "^1.2.3-beta.2", "1.2.3-beta.4", true ],
-        [ "^1.2.3-beta.2", "1.2.4-beta.2", false ],
+        [ "^1.2.3-beta.2", "1.2.4-beta.2", true ],
+        [ "^1.2.3-beta.2", "1.2.3-alpha.1", false ],
     ];
 }

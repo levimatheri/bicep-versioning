@@ -10,17 +10,19 @@ public partial class SemanticVersion : IEquatable<SemanticVersion>, IComparable<
     public IReadOnlyList<PrereleaseIdentifier>? PrereleaseIdentifiers { get; }
     public IReadOnlyList<BuildIdentifier>? BuildIdentifiers { get; }
     
+    internal OmittedComponent OmittedComponent { get; }
     private string? Prerelease { get; }
     private string? BuildMetadata { get; }
 
-    private SemanticVersion(
+    internal SemanticVersion(
         int major, 
         int minor, 
         int patch, 
         string? prerelease = null,
         string? buildMetadata = null,
         IReadOnlyList<PrereleaseIdentifier>? prereleaseIdentifiers = null,
-        IReadOnlyList<BuildIdentifier>? buildIdentifiers = null)
+        IReadOnlyList<BuildIdentifier>? buildIdentifiers = null,
+        OmittedComponent omittedComponent = OmittedComponent.None)
     {
         Major = major;
         Minor = minor;
@@ -29,6 +31,7 @@ public partial class SemanticVersion : IEquatable<SemanticVersion>, IComparable<
         BuildMetadata = buildMetadata;
         PrereleaseIdentifiers = prereleaseIdentifiers;
         BuildIdentifiers = buildIdentifiers;
+        OmittedComponent = omittedComponent;
     }
 
     /// <summary>
@@ -56,6 +59,12 @@ public partial class SemanticVersion : IEquatable<SemanticVersion>, IComparable<
         var minor = minorRaw.Success ? int.Parse(minorRaw.Value) : 0;
         var patch = patchRaw.Success ? int.Parse(patchRaw.Value) : 0;
 
+        var omitted = OmittedComponent.None;
+        if (!minorRaw.Success)
+            omitted |= OmittedComponent.Minor;
+        if (!patchRaw.Success)
+            omitted |= OmittedComponent.Patch;
+
         var prerelease = prereleaseRaw.Success ? prereleaseRaw.Value : null;
         var buildMetadata = buildMetadataRaw.Success ? buildMetadataRaw.Value : null;
 
@@ -69,7 +78,8 @@ public partial class SemanticVersion : IEquatable<SemanticVersion>, IComparable<
             prerelease,
             buildMetadata,
             prereleaseIdentifiers,
-            buildMetadataIdentifiers);
+            buildMetadataIdentifiers,
+            omitted);
     }
 
     /// <summary>
@@ -118,146 +128,7 @@ public partial class SemanticVersion : IEquatable<SemanticVersion>, IComparable<
         => this.CompareTo(other) <= 0;
     public bool GreaterThanOrEqual(SemanticVersion other)
         => this.CompareTo(other) >= 0;
-
-    public bool SatisfiesTilde(SemanticVersion other)
-    {
-        if (!this.GreaterThanOrEqual(other))
-            return false;
-
-        if (this.Major != other.Major)
-        {
-            // If the major version differs, the version doesn't satisfy the range
-            return false;
-        }
-
-        var upperMinor = other.Minor > 0 || other.Patch > 0 ? other.Minor + 1 : 0;
-        var upperMajor = other.Major + 1;
-
-        SemanticVersion upperBound;
-        if (other.Minor > 0 || other.Patch > 0)
-        {
-            // If other.Patch is specified, upper bound is next minor
-            var upperBoundRaw = $"{other.Major}.{upperMinor}.0";
-            upperBound = new SemanticVersion(other.Major, upperMinor, 0);
-        }
-        else
-        {
-            // If other.Minor is 0, upper bound is next major
-            var upperMajorBoundRaw = $"{upperMajor}.0.0";
-            upperBound = new SemanticVersion(upperMajor, 0, 0);
-        }
-
-        // If 'other' is a prerelease, only allow prereleases of the same [major, minor, patch] tuple
-        if (other.PrereleaseIdentifiers?.Any() is false)
-        {
-            return this.LessThan(upperBound);
-        }
-        
-        if (this.Major == other.Major && this.Minor == other.Minor && this.Patch == other.Patch)
-        {
-            if (this.PrereleaseIdentifiers?.Any() == true)
-            {
-                return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
-            }
-
-            // Release version of the same [major, minor, patch] tuple is allowed
-            return true;
-        }
-
-        // Not the same [major, minor, patch] tuple
-        return false;
-    }
-
-    public bool SatisfiesCaret(SemanticVersion other)
-    {
-        if (!this.GreaterThanOrEqual(other))
-            return false;
-
-        if (other.Major > 0)
-        {
-            // < next major
-            var upperBoundRaw = $"{other.Major + 1}.0.0";
-            var upperBound = new SemanticVersion(other.Major + 1, 0, 0);
-
-            if (!this.LessThan(upperBound))
-            {
-                return false;
-            }
-            
-            // If other is a prerelease, only allow prereleases of the same [major, minor, patch] tuple
-            if (other.PrereleaseIdentifiers?.Any() == true)
-            {
-                if (this.Major == other.Major && this.Minor == other.Minor && this.Patch == other.Patch)
-                {
-                    if (this.PrereleaseIdentifiers?.Any() == true)
-                    {
-                        return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
-                    }
-
-                    // Release version of the same [major, minor, patch] tuple is allowed
-                    return true;
-                }
-
-                return false;
-            }
-
-            // If other is not a prerelease, allow any version with the same major
-            return this.Major == other.Major;
-        }
-
-        if (other.Minor > 0)
-        {
-            // < next minor
-            var upperBoundRaw = $"0.{other.Minor + 1}.0";
-            var upperBound = new SemanticVersion(0, other.Minor + 1, 0);
-
-            if (!this.LessThan(upperBound))
-            {
-                return false;
-            }
-            
-            if (other.PrereleaseIdentifiers?.Any() == true)
-            {
-                if (this.Major == 0 && this.Minor == other.Minor && this.Patch == other.Patch)
-                {
-                    if (this.PrereleaseIdentifiers?.Any() == true)
-                    {
-                        return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
-                    }
-                    
-                    return true;
-                }
-                
-                return false;
-            }
-            
-            return this.Major == 0 && this.Minor == other.Minor;
-        }
-
-        // < next patch
-        var patchUpperBoundRaw = $"0.0.{other.Patch + 1}";
-        var patchUpperBound = new SemanticVersion(0, 0, other.Patch + 1);
-
-        if (!this.LessThan(patchUpperBound))
-        {
-            return false;
-        }
-        
-        if (other.PrereleaseIdentifiers?.Any() == true)
-        {
-            if (this.Major == 0 && this.Minor == 0 && this.Patch == other.Patch)
-            {
-                if (this.PrereleaseIdentifiers?.Any() == true)
-                {
-                    return this.ComparePrereleases(other.PrereleaseIdentifiers!) >= 0;
-                }
-                return true;
-            }
-            return false;
-        }
-        return this.Major == 0 && this.Minor == 0 && this.Patch == other.Patch;
-    }
-
+    
     public int CompareTo(SemanticVersion? other)
     {
         if (other is null)
@@ -361,4 +232,13 @@ public partial class SemanticVersion : IEquatable<SemanticVersion>, IComparable<
 
     [GeneratedRegex(@"^\s*(?<major>0|[1-9]\d*)(?:\.(?<minor>0|[1-9]\d*))?(?:\.(?<patch>0|[1-9]\d*))?(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<build>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?\s*$")]
     private static partial Regex SemverRegex();
+}
+
+[Flags]
+internal enum OmittedComponent
+{
+    None = 0,
+    Major = 1 << 0,
+    Minor = 1 << 1,
+    Patch = 1 << 2
 }
