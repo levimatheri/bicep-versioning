@@ -4,6 +4,14 @@ namespace Bicep.Versioning;
 
 public partial class SemanticVersionRange
 {
+    private const string TildeOperator = "~";
+    private const string CaretOperator = "^";
+    private const string EqualOperator = "=";
+    private const string GreaterThanOperator = ">";
+    private const string LessThanOperator = "<";
+    private const string GreaterThanOrEqualOperator = ">=";
+    private const string LessThanOrEqualOperator = "<=";
+    
     private SemanticVersionRange(ConstraintOperation operation,  SemanticVersion version)
     {
         Operation = operation;
@@ -29,12 +37,12 @@ public partial class SemanticVersionRange
 
             switch (opString)
             {
-                case "~":
+                case TildeOperator:
                 {
                     result.AddRange(ParseTilde(version));
                     break;
                 }
-                case "^":
+                case CaretOperator:
                 {
                     result.AddRange(ParseCaret(version));
                     break;
@@ -65,8 +73,8 @@ public partial class SemanticVersionRange
             upperBound = new SemanticVersion(version.Major + 1, 0, 0);
         }
         
-        result.Add(new SemanticVersionRange(ConstraintOperations[">="], version));
-        result.Add(new SemanticVersionRange(ConstraintOperations["<"], upperBound));
+        result.Add(new SemanticVersionRange(ConstraintOperations[GreaterThanOrEqualOperator], version));
+        result.Add(new SemanticVersionRange(ConstraintOperations[LessThanOperator], upperBound));
         
         return result;
     }
@@ -88,8 +96,8 @@ public partial class SemanticVersionRange
             upperBound = new SemanticVersion(0, 0, version.Patch + 1);
         }
         
-        result.Add(new SemanticVersionRange(ConstraintOperations[">="], version));
-        result.Add(new SemanticVersionRange(ConstraintOperations["<"], upperBound));
+        result.Add(new SemanticVersionRange(ConstraintOperations[GreaterThanOrEqualOperator], version));
+        result.Add(new SemanticVersionRange(ConstraintOperations[LessThanOperator], upperBound));
         
         return result;
     }
@@ -100,15 +108,15 @@ public partial class SemanticVersionRange
 
     private static readonly IReadOnlyDictionary<string, ConstraintOperation> ConstraintOperations = new Dictionary<string, ConstraintOperation>
     {
-        { "", new ConstraintOperation(ConstraintOperator.Equal, (a, b) => a.Equals(b)) },
-        { "=", new ConstraintOperation(ConstraintOperator.Equal, (a, b) => a.Equals(b)) },
-        { ">", new ConstraintOperation(ConstraintOperator.GreaterThan, (a, b) => a.GreaterThan(b)) },
-        { "<", new ConstraintOperation(ConstraintOperator.LessThan, (a, b) => a.LessThan(b)) },
-        { ">=", new ConstraintOperation(ConstraintOperator.GreaterThanOrEqual, (a, b) => a.GreaterThanOrEqual(b)) },
-        { "<=", new ConstraintOperation(ConstraintOperator.LessThanOrEqual, (a, b) => a.LessThanOrEqual(b)) },
+        { string.Empty, new ConstraintOperation(ConstraintOperator.Equal, (a, b) => a.Equals(b)) },
+        { EqualOperator, new ConstraintOperation(ConstraintOperator.Equal, (a, b) => a.Equals(b)) },
+        { GreaterThanOperator, new ConstraintOperation(ConstraintOperator.GreaterThan, (a, b) => a.GreaterThan(b)) },
+        { LessThanOperator, new ConstraintOperation(ConstraintOperator.LessThan, (a, b) => a.LessThan(b)) },
+        { GreaterThanOrEqualOperator, new ConstraintOperation(ConstraintOperator.GreaterThanOrEqual, (a, b) => a.GreaterThanOrEqual(b)) },
+        { LessThanOrEqualOperator, new ConstraintOperation(ConstraintOperator.LessThanOrEqual, (a, b) => a.LessThanOrEqual(b)) },
     };
 
-    [GeneratedRegex(@"^\s*(?:(?<operator>>=|<=|=|>|<|\^|~)\s*)?(?<version>.+?)\s*$")]
+    [GeneratedRegex($@"^\s*(?:(?<operator>>=|<=|=|>|<|\^|~)\s*)?(?<version>.+?)\s*$")]
     private static partial Regex ConstraintRegex();
 }
 

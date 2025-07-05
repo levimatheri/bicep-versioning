@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Bicep.Versioning;
@@ -103,16 +104,23 @@ public partial class SemanticVersion : IEquatable<SemanticVersion>, IComparable<
 
     public override string ToString()
     {
-        var version = $"{Major}.{Minor}.{Patch}";
-        if (!string.IsNullOrEmpty(Prerelease))
+        var version = new StringBuilder();
+        version.Append(this.Major);
+        version.Append('.');
+        version.Append(this.Minor);
+        version.Append('.');
+        version.Append(this.Patch);
+        if (!string.IsNullOrEmpty(this.Prerelease))
         {
-            version += $"-{Prerelease}";
+            version.Append('-');
+            version.Append(Prerelease);
         }
-        if (!string.IsNullOrEmpty(BuildMetadata))
+        if (!string.IsNullOrEmpty(this.BuildMetadata))
         {
-            version += $"+{BuildMetadata}";
+            version.Append('+');
+            version.Append(this.BuildMetadata);
         }
-        return version;
+        return version.ToString();
     }
 
     public override bool Equals(object? obj)
