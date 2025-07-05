@@ -12,7 +12,7 @@ public partial class SemanticVersionRange
     private const string GreaterThanOrEqualOperator = ">=";
     private const string LessThanOrEqualOperator = "<=";
     
-    private SemanticVersionRange(ConstraintOperation operation,  SemanticVersion version)
+    private SemanticVersionRange(SemanticVersionComparator operation,  SemanticVersion version)
     {
         Operation = operation;
         Version = version;
@@ -102,25 +102,25 @@ public partial class SemanticVersionRange
         return result;
     }
 
-    public ConstraintOperation Operation { get; }
+    public SemanticVersionComparator Operation { get; }
     public SemanticVersion Version { get; }
 
 
-    private static readonly IReadOnlyDictionary<string, ConstraintOperation> ConstraintOperations = new Dictionary<string, ConstraintOperation>
+    private static readonly IReadOnlyDictionary<string, SemanticVersionComparator> ConstraintOperations = new Dictionary<string, SemanticVersionComparator>
     {
-        { string.Empty, new ConstraintOperation(ConstraintOperator.Equal, (a, b) => a.Equals(b)) },
-        { EqualOperator, new ConstraintOperation(ConstraintOperator.Equal, (a, b) => a.Equals(b)) },
-        { GreaterThanOperator, new ConstraintOperation(ConstraintOperator.GreaterThan, (a, b) => a.GreaterThan(b)) },
-        { LessThanOperator, new ConstraintOperation(ConstraintOperator.LessThan, (a, b) => a.LessThan(b)) },
-        { GreaterThanOrEqualOperator, new ConstraintOperation(ConstraintOperator.GreaterThanOrEqual, (a, b) => a.GreaterThanOrEqual(b)) },
-        { LessThanOrEqualOperator, new ConstraintOperation(ConstraintOperator.LessThanOrEqual, (a, b) => a.LessThanOrEqual(b)) },
+        { string.Empty, new SemanticVersionComparator(ComparisonOperator.Equal, (a, b) => a.Equals(b)) },
+        { EqualOperator, new SemanticVersionComparator(ComparisonOperator.Equal, (a, b) => a.Equals(b)) },
+        { GreaterThanOperator, new SemanticVersionComparator(ComparisonOperator.GreaterThan, (a, b) => a.GreaterThan(b)) },
+        { LessThanOperator, new SemanticVersionComparator(ComparisonOperator.LessThan, (a, b) => a.LessThan(b)) },
+        { GreaterThanOrEqualOperator, new SemanticVersionComparator(ComparisonOperator.GreaterThanOrEqual, (a, b) => a.GreaterThanOrEqual(b)) },
+        { LessThanOrEqualOperator, new SemanticVersionComparator(ComparisonOperator.LessThanOrEqual, (a, b) => a.LessThanOrEqual(b)) },
     };
 
     [GeneratedRegex($@"^\s*(?:(?<operator>>=|<=|=|>|<|\^|~)\s*)?(?<version>.+?)\s*$")]
     private static partial Regex ConstraintRegex();
 }
 
-public enum ConstraintOperator
+public enum ComparisonOperator
 {
     Equal,
     GreaterThan,
@@ -129,14 +129,14 @@ public enum ConstraintOperator
     LessThanOrEqual
 }
 
-public class ConstraintOperation
+public class SemanticVersionComparator
 {
-    public ConstraintOperation(ConstraintOperator @operator, Func<SemanticVersion, SemanticVersion, bool> operation)
+    public SemanticVersionComparator(ComparisonOperator @operator, Func<SemanticVersion, SemanticVersion, bool> operation)
     {
         Operator = @operator;
         Evaluator = operation;
     }
 
-    public ConstraintOperator Operator { get; }
+    public ComparisonOperator Operator { get; }
     public Func<SemanticVersion, SemanticVersion, bool> Evaluator { get; }
 }
