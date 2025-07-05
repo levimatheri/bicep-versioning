@@ -92,7 +92,6 @@ public class SemanticVersionTests
         semanticVersion.Patch.Should().Be(patch);
         semanticVersion.PrereleaseIdentifiers.Should().BeEquivalentTo(prerelease);
         semanticVersion.BuildIdentifiers.Should().BeEquivalentTo(build);
-        semanticVersion.Raw.Should().Be(versionRaw);
     }
     
     private static void TestInvalidVersion(string versionRaw)
@@ -159,7 +158,7 @@ public class SemanticVersionTests
     ];
 
     // test cases from https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
-    private static IEnumerable<object[]> GetInvalidVersionsBasic =>
+    private static IEnumerable<object?[]> GetInvalidVersionsBasic =>
     [
         ["1.2.3-0123"],
         ["1.2.3-0123.0123"],

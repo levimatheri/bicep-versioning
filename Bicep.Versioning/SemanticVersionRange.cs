@@ -4,11 +4,10 @@ namespace Bicep.Versioning;
 
 public partial class SemanticVersionRange
 {
-    private SemanticVersionRange(ConstraintOperation operation,  SemanticVersion version, string raw)
+    private SemanticVersionRange(ConstraintOperation operation,  SemanticVersion version)
     {
         Operation = operation;
         Version = version;
-        Raw = raw;
     }
     
     public static IReadOnlyList<SemanticVersionRange> Parse(string range)
@@ -34,12 +33,11 @@ public partial class SemanticVersionRange
             throw new FormatException($"Unknown operator: {opString}");
         }
         var version = SemanticVersion.Parse(versionRaw.Value);
-        return new SemanticVersionRange(operation, version, range);
+        return new SemanticVersionRange(operation, version);
     }
 
     public ConstraintOperation Operation { get; }
     public SemanticVersion Version { get; }
-    public string Raw { get; }
 
 
     private static readonly IReadOnlyDictionary<string, ConstraintOperation> ConstraintOperations = new Dictionary<string, ConstraintOperation>
@@ -50,8 +48,8 @@ public partial class SemanticVersionRange
         { "<", new ConstraintOperation(ConstraintOperator.LessThan, (a, b) => a.LessThan(b)) },
         { ">=", new ConstraintOperation(ConstraintOperator.GreaterThanOrEqual, (a, b) => a.GreaterThanOrEqual(b)) },
         { "<=", new ConstraintOperation(ConstraintOperator.LessThanOrEqual, (a, b) => a.LessThanOrEqual(b)) },
-        { "^", new ConstraintOperation(ConstraintOperator.Caret, (a, b) => a.SatisfiesCaretRange(b)) },
-        { "~", new ConstraintOperation(ConstraintOperator.Tilde, (a, b) => a.SatisfiesTildeRange(b)) }
+        { "^", new ConstraintOperation(ConstraintOperator.Caret, (a, b) => a.SatisfiesCaret(b)) },
+        { "~", new ConstraintOperation(ConstraintOperator.Tilde, (a, b) => a.SatisfiesTilde(b)) }
     };
 
     [GeneratedRegex(@"^\s*(?:(?<operator>>=|<=|=|>|<|\^|~)\s*)?(?<version>.+?)\s*$")]

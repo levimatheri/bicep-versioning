@@ -2,28 +2,26 @@ using System.Text.RegularExpressions;
 
 namespace Bicep.Versioning;
 
-public partial class SemanticVersion
+public partial class SemanticVersion : IEquatable<SemanticVersion>, IComparable<SemanticVersion>
 {
-    public string Raw { get; }
     public int Major { get; }
     public int Minor { get; }
     public int Patch { get; }
-    public string? Prerelease { get; }
-    public string? BuildMetadata { get; }
-    public IEnumerable<PrereleaseIdentifier>? PrereleaseIdentifiers { get; }
-    public IEnumerable<BuildIdentifier>? BuildIdentifiers { get; }
+    public IReadOnlyList<PrereleaseIdentifier>? PrereleaseIdentifiers { get; }
+    public IReadOnlyList<BuildIdentifier>? BuildIdentifiers { get; }
+    
+    private string? Prerelease { get; }
+    private string? BuildMetadata { get; }
 
-    internal SemanticVersion(
-        string raw, 
+    private SemanticVersion(
         int major, 
         int minor, 
         int patch, 
         string? prerelease = null,
         string? buildMetadata = null,
-        IEnumerable<PrereleaseIdentifier>? prereleaseIdentifiers = null,
-        IEnumerable<BuildIdentifier>? buildIdentifiers = null)
+        IReadOnlyList<PrereleaseIdentifier>? prereleaseIdentifiers = null,
+        IReadOnlyList<BuildIdentifier>? buildIdentifiers = null)
     {
-        Raw = raw;
         Major = major;
         Minor = minor;
         Patch = patch;
@@ -65,7 +63,6 @@ public partial class SemanticVersion
         var buildMetadataIdentifiers = ParseBuildMetadata(buildMetadata);
 
         return new SemanticVersion(
-            version,
             major,
             minor,
             patch,
@@ -122,14 +119,14 @@ public partial class SemanticVersion
     public bool GreaterThanOrEqual(SemanticVersion other)
         => this.CompareTo(other) >= 0;
 
-    public bool SatisfiesTildeRange(SemanticVersion other)
+    public bool SatisfiesTilde(SemanticVersion other)
     {
         if (!this.GreaterThanOrEqual(other))
             return false;
 
         if (this.Major != other.Major)
         {
-            // If the major version differs, the range is invalid
+            // If the major version differs, the version doesn't satisfy the range
             return false;
         }
 
@@ -141,13 +138,13 @@ public partial class SemanticVersion
         {
             // If other.Patch is specified, upper bound is next minor
             var upperBoundRaw = $"{other.Major}.{upperMinor}.0";
-            upperBound = new SemanticVersion(upperBoundRaw, other.Major, upperMinor, 0);
+            upperBound = new SemanticVersion(other.Major, upperMinor, 0);
         }
         else
         {
             // If other.Minor is 0, upper bound is next major
             var upperMajorBoundRaw = $"{upperMajor}.0.0";
-            upperBound = new SemanticVersion(upperMajorBoundRaw, upperMajor, 0, 0);
+            upperBound = new SemanticVersion(upperMajor, 0, 0);
         }
 
         // If 'other' is a prerelease, only allow prereleases of the same [major, minor, patch] tuple
@@ -171,7 +168,7 @@ public partial class SemanticVersion
         return false;
     }
 
-    public bool SatisfiesCaretRange(SemanticVersion other)
+    public bool SatisfiesCaret(SemanticVersion other)
     {
         if (!this.GreaterThanOrEqual(other))
             return false;
@@ -180,7 +177,7 @@ public partial class SemanticVersion
         {
             // < next major
             var upperBoundRaw = $"{other.Major + 1}.0.0";
-            var upperBound = new SemanticVersion(upperBoundRaw, other.Major + 1, 0, 0);
+            var upperBound = new SemanticVersion(other.Major + 1, 0, 0);
 
             if (!this.LessThan(upperBound))
             {
@@ -212,7 +209,7 @@ public partial class SemanticVersion
         {
             // < next minor
             var upperBoundRaw = $"0.{other.Minor + 1}.0";
-            var upperBound = new SemanticVersion(upperBoundRaw, 0, other.Minor + 1, 0);
+            var upperBound = new SemanticVersion(0, other.Minor + 1, 0);
 
             if (!this.LessThan(upperBound))
             {
@@ -239,7 +236,7 @@ public partial class SemanticVersion
 
         // < next patch
         var patchUpperBoundRaw = $"0.0.{other.Patch + 1}";
-        var patchUpperBound = new SemanticVersion(patchUpperBoundRaw, 0, 0, other.Patch + 1);
+        var patchUpperBound = new SemanticVersion(0, 0, other.Patch + 1);
 
         if (!this.LessThan(patchUpperBound))
         {
@@ -261,8 +258,13 @@ public partial class SemanticVersion
         return this.Major == 0 && this.Minor == 0 && this.Patch == other.Patch;
     }
 
-    public int CompareTo(SemanticVersion other)
+    public int CompareTo(SemanticVersion? other)
     {
+        if (other is null)
+        {
+            return 1;
+        }
+        
         var majorComparison = Major.CompareTo(other.Major);
         if (majorComparison != 0)
         {
@@ -311,37 +313,23 @@ public partial class SemanticVersion
         return this.CompareTo(other) == 0;
     }
 
-    private int ComparePrereleases(IEnumerable<PrereleaseIdentifier> other)
+    private int ComparePrereleases(IReadOnlyList<PrereleaseIdentifier> otherList)
     {
-        using var thisEnumerator = this.PrereleaseIdentifiers!.GetEnumerator();
-        using var otherEnumerator = other.GetEnumerator();
+        var thisList = this.PrereleaseIdentifiers!;
 
-        while (thisEnumerator.MoveNext() && otherEnumerator.MoveNext())
+        foreach (var (a, b) in thisList.Zip(otherList, (a, b) => (a, b)))
         {
-            var thisIdentifier = thisEnumerator.Current;
-            var otherIdentifier = otherEnumerator.Current;
-
-            var comparison = thisIdentifier.CompareTo(otherIdentifier);
-            if (comparison != 0)
+            var cmp = a.CompareTo(b);
+            if (cmp != 0)
             {
-                return comparison;
+                return cmp;
             }
         }
 
-        if (thisEnumerator.MoveNext())
-        {
-            return 1; // This has more identifiers
-        }
-
-        if (otherEnumerator.MoveNext())
-        {
-            return -1; // Other has more identifiers
-        }
-
-        return 0; // Both have the same number of identifiers
+        return thisList.Count.CompareTo(otherList.Count);
     }
     
-    private static PrereleaseIdentifier[] ParsePrerelease(string? prerelease)
+    private static IReadOnlyList<PrereleaseIdentifier> ParsePrerelease(string? prerelease)
     {
         if (string.IsNullOrEmpty(prerelease))
         {
@@ -350,12 +338,13 @@ public partial class SemanticVersion
 
         var prereleaseIdentifiers = prerelease.Split('.')
             .Select(x => new PrereleaseIdentifier(x))
-            .ToArray();
+            .ToList()
+            .AsReadOnly();
 
         return prereleaseIdentifiers;
     }
     
-    private static BuildIdentifier[] ParseBuildMetadata(string? build)
+    private static IReadOnlyList<BuildIdentifier> ParseBuildMetadata(string? build)
     {
         if (string.IsNullOrEmpty(build))
         {
@@ -364,7 +353,8 @@ public partial class SemanticVersion
 
         var buildIdentifiers = build.Split('.')
             .Select(x => new BuildIdentifier(x))
-            .ToArray();
+            .ToList()
+            .AsReadOnly();
 
         return buildIdentifiers;
     }
